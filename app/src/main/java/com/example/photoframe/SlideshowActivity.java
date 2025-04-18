@@ -57,14 +57,23 @@ public class SlideshowActivity extends Activity {
 
     private void loadImagesFromSdCard() {
 //        File sdCard = Environment.getExternalStorageDirectory(); // `/mnt/sdcard`
-        File sdCard = new File("/Removable/MicroSD"); // `/mnt/sdcard`
-        if (sdCard == null || !sdCard.exists()) {
-            showMessage("SD card not available.");
+//        File sdCard = new File("/Removable/MicroSD"); // `/mnt/sdcard`
+//        if (sdCard == null || !sdCard.exists()) {
+//            showMessage("SD card not available.");
+//            return;
+//        }
+
+        String folderPath = getIntent().getStringExtra("folderPath");
+        if (folderPath != null) {
+            scanDirectoryForImages(new File(folderPath));
+            Collections.shuffle(imageFiles); // random order
+        } else {
+            showMessage("No images available");
             return;
         }
 
-        scanDirectoryForImages(sdCard);
-        Collections.shuffle(imageFiles); // random order
+//        scanDirectoryForImages(sdCard);
+//        Collections.shuffle(imageFiles); // random order
     }
 
     private void scanDirectoryForImages(File dir) {

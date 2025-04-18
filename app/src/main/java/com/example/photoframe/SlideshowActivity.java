@@ -22,11 +22,16 @@ public class SlideshowActivity extends Activity {
     private Handler handler;
     private Runnable slideshowRunnable;
     private List<File> imageFiles = new ArrayList<>();
-    private int intervalMillis = 5000; // default 5 seconds
+    private int intervalMillis; // = 5000; // default 5 seconds
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Set intervalMillis
+        int intervalSeconds = getIntent().getIntExtra("intervalSeconds", 5);
+        intervalMillis = intervalSeconds * 1000;
+
 
         // Fullscreen setup
         requestWindowFeature(Window.FEATURE_NO_TITLE);

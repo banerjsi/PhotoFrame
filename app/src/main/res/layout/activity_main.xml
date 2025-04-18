@@ -17,10 +17,20 @@
         android:text="No folder selected"
         android:padding="8dp" />
 
+    <EditText
+        android:id="@+id/editInterval"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:inputType="number"
+        android:hint="Interval in seconds"
+        android:padding="12dp"
+        android:textSize="16sp"
+        />
+
     <Button
         android:id="@+id/btnPlay"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Play Slideshow"
-        android:enabled="false"/>
+        android:enabled="false" />
 </LinearLayout>

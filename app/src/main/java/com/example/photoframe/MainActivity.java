@@ -5,13 +5,16 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 
     private static final int REQUEST_SELECT_FOLDER = 1;
 
     private TextView tvSelectedPath;
+    private EditText editInterval;
     private String selectedFolderPath = null;
 
     @Override
@@ -21,6 +24,7 @@ public class MainActivity extends Activity {
 
         Button btnBrowse = findViewById(R.id.btnBrowse);
         Button btnPlay = findViewById(R.id.btnPlay);
+        editInterval = findViewById(R.id.editInterval);
         tvSelectedPath = findViewById(R.id.tvSelectedPath);
 
         btnBrowse.setOnClickListener(new View.OnClickListener() {
@@ -34,10 +38,15 @@ public class MainActivity extends Activity {
         btnPlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (selectedFolderPath != null) {
+                String intervalStr = editInterval.getText().toString().trim();
+                if (selectedFolderPath != null && !intervalStr.isEmpty()) {
+                    int interval = Integer.parseInt(intervalStr);
                     Intent intent = new Intent(MainActivity.this, SlideshowActivity.class);
                     intent.putExtra("folderPath", selectedFolderPath);
+                    intent.putExtra("intervalSeconds", interval);
                     startActivity(intent);
+                } else {
+                    Toast.makeText(MainActivity.this, "Please select folder and interval", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -52,5 +61,3 @@ public class MainActivity extends Activity {
         }
     }
 }
-
-

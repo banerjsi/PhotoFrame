@@ -6,9 +6,12 @@ import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
@@ -19,96 +22,117 @@ import java.util.List;
 public class SlideshowActivity extends Activity {
 
     private ImageView imageView;
-    private Handler handler;
-    private Runnable slideshowRunnable;
+    private TextView tvFilename;
+    private Handler handler = new Handler();
     private List<File> imageFiles = new ArrayList<>();
-    private int intervalMillis; // = 5000; // default 5 seconds
+    private int currentIndex = 0;
+    private int intervalMillis = 5000;
+    private boolean paused = false;
+    private Button btnPrev, btnNext;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_slideshow);
 
-        // Set intervalMillis
+        // Keep screen on
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        imageView = findViewById(R.id.imageView);
+        tvFilename = findViewById(R.id.tvFilename);
+        btnPrev = findViewById(R.id.btnPrev);
+        btnNext = findViewById(R.id.btnNext);
+
+
+        String folderPath = getIntent().getStringExtra("folderPath");
         int intervalSeconds = getIntent().getIntExtra("intervalSeconds", 5);
         intervalMillis = intervalSeconds * 1000;
 
+        File folder = new File(folderPath);
+        scanDirectoryForImages(folder);
 
-        // Fullscreen setup
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(
-                WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN
-        );
-
-        imageView = new ImageView(this);
-        imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        setContentView(imageView);
-
-        handler = new Handler();
-
-        loadImagesFromSdCard();
-
-        if (imageFiles.isEmpty()) {
-            showMessage("No photos found on SD card.");
-            return;
-        }
-
-        startSlideshow();
-    }
-
-    private void showMessage(String msg) {
-        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
-    }
-
-    private void loadImagesFromSdCard() {
-//        File sdCard = Environment.getExternalStorageDirectory(); // `/mnt/sdcard`
-//        File sdCard = new File("/Removable/MicroSD"); // `/mnt/sdcard`
-//        if (sdCard == null || !sdCard.exists()) {
-//            showMessage("SD card not available.");
-//            return;
-//        }
-
-        String folderPath = getIntent().getStringExtra("folderPath");
-        if (folderPath != null) {
-            scanDirectoryForImages(new File(folderPath));
-            Collections.shuffle(imageFiles); // random order
+        if (!imageFiles.isEmpty()) {
+            showImage(currentIndex);
+            handler.postDelayed(slideshowRunnable, intervalMillis);
         } else {
-            showMessage("No images available");
-            return;
+            Toast.makeText(this, "No images found in selected folder.", Toast.LENGTH_LONG).show();
+            finish();
         }
 
-//        scanDirectoryForImages(sdCard);
-//        Collections.shuffle(imageFiles); // random order
+// Tap to pause/resume
+        imageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                paused = !paused;
+                if (paused) {
+                    handler.removeCallbacks(slideshowRunnable);
+                    tvFilename.setText(imageFiles.get(currentIndex).getName());
+                    tvFilename.setVisibility(View.VISIBLE);
+                    btnPrev.setVisibility(View.VISIBLE);
+                    btnNext.setVisibility(View.VISIBLE);
+                } else {
+                    tvFilename.setVisibility(View.GONE);
+                    btnPrev.setVisibility(View.GONE);
+                    btnNext.setVisibility(View.GONE);
+                    handler.postDelayed(slideshowRunnable, intervalMillis);
+                }
+            }
+        });
+
+        btnNext.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                currentIndex = (currentIndex + 1) % imageFiles.size();
+                showImage(currentIndex);
+                tvFilename.setText(imageFiles.get(currentIndex).getName());
+            }
+        });
+
+        btnPrev.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                currentIndex = (currentIndex - 1 + imageFiles.size()) % imageFiles.size();
+                showImage(currentIndex);
+                tvFilename.setText(imageFiles.get(currentIndex).getName());
+            }
+        });
+
+
+
     }
 
-    private void scanDirectoryForImages(File dir) {
-        File[] files = dir.listFiles();
-        if (files == null) return;
-
-        for (File file : files) {
-            if (file.isDirectory()) {
-                scanDirectoryForImages(file); // recursive
-            } else if (file.getName().matches("(?i).*\\.(jpg|jpeg|png|bmp|gif)$")) {
-                imageFiles.add(file);
+    private void scanDirectoryForImages(File folder) {
+        File[] files = folder.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile() && isImageFile(file)) {
+                    imageFiles.add(file);
+                }
             }
         }
     }
 
-    private void startSlideshow() {
-        slideshowRunnable = new Runnable() {
-            int index = 0;
-            @Override
-            public void run() {
-                if (index >= imageFiles.size()) index = 0;
+    private boolean isImageFile(File file) {
+        String name = file.getName().toLowerCase();
+        return name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png") || name.endsWith(".bmp") || name.endsWith(".gif");
+    }
 
-                Bitmap bitmap = BitmapFactory.decodeFile(imageFiles.get(index).getAbsolutePath());
-                imageView.setImageBitmap(bitmap);
-                index++;
-
+    private Runnable slideshowRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!paused) {
+                currentIndex = (currentIndex + 1) % imageFiles.size();
+                showImage(currentIndex);
                 handler.postDelayed(this, intervalMillis);
             }
-        };
-        handler.post(slideshowRunnable);
+        }
+    };
+
+    private void showImage(int index) {
+        File imageFile = imageFiles.get(index);
+        Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
+        imageView.setImageBitmap(bitmap);
     }
 
     @Override
